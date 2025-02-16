@@ -1,0 +1,600 @@
+<html><head><base href="https://">
+<style>
+:root {
+  --primary: #2b87d1;
+  --secondary: #34495e;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.game-container {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  margin: 2rem;
+  max-width: 600px;
+  width: 90%;
+}
+
+.word-display {
+  font-size: 2rem;
+  color: var(--primary);
+  text-align: center;
+  margin: 1rem 0;
+  min-height: 3rem;
+}
+
+.question {
+  font-size: 1.2rem;
+  color: var(--secondary);
+  text-align: center;
+  margin: 1rem 0;
+  min-height: 4rem;
+}
+
+.answer-input {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.button-container {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+button {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  background: #1a6cb3;
+}
+
+button.skip {
+  background: var(--secondary);
+}
+
+button.skip:hover {
+  background: #2c3e50;
+}
+
+.new-challenge {
+  margin-top: 1rem;
+  background: #27ae60 !important; /* Green color to differentiate it */
+}
+
+.new-challenge:hover {
+  background: #219a52 !important;
+}
+
+.score {
+  font-size: 1.2rem;
+  color: var(--secondary);
+  text-align: center;
+}
+
+.feedback {
+  text-align: center;
+  min-height: 2rem;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.correct { color: #27ae60; }
+.incorrect { color: #e74c3c; }
+
+.celebration-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.celebration-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.celebration-content img {
+  max-width: 200px;
+  margin: 1rem 0;
+}
+</style>
+</head>
+<body>
+<div class="game-container">
+  <h1>Word Family Challenge</h1>
+  <h2>(semi-, sub-, para-, pseudo-, tele-, trans-, ultra-, under-)</h2>
+  <p class="subtitle">Complete this challenge successfully and earn a Pokemon!</p>
+  <div class="score">Score: <span id="score">0</span></div>
+  <div class="word-display" id="word"></div>
+  <div class="question" id="question"></div>
+  <input type="text" class="answer-input" id="answer" placeholder="Type your answer here">
+  <div class="button-container">
+    <button onclick="checkAnswer()">Submit Answer</button>
+    <button onclick="skipWord()" class="skip">Skip this word</button>
+  </div>
+  <button onclick="startNewChallenge()" class="new-challenge">Start a New Challenge</button>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<div class="celebration-modal" id="celebrationModal">
+  <div class="celebration-content">
+    <h2>Congratulations!</h2>
+    <p>You've correctly answered 10 questions! You've won this Pokemon!</p>
+    <div id="pokemonImage"></div>
+    <button onclick="closeCelebration()">Continue Playing</button>
+  </div>
+</div>
+
+<script>
+const wordFamilies = [
+  {
+    "baseWord": "circle",
+    "question": "What word is formed by adding a prefix to the word 'circle' to mean half of a circle?",
+    "correct": ["semicircle"]
+  },
+  {
+    "baseWord": "automatic",
+    "question": "What adjective is formed by adding a prefix to the word 'automatic' to mean partially automatic?",
+    "correct": ["semiautomatic","semi-automatic"]
+  },
+  {
+    "baseWord": "final",
+    "question": "What adjective is formed by adding a prefix to the word 'final' to mean half complete or not fully final?",
+    "correct": ["semifinal","semi-final"]
+  },
+  {
+    "baseWord": "conductor",
+    "question": "What noun is formed by adding a prefix to the word 'conductor' to mean someone who partly conducts?",
+    "correct": ["semiconductor"]
+  },
+  {
+    "baseWord": "detached",
+    "question": "What adjective is formed by adding a prefix to the word 'detached' to mean partly detached?",
+    "correct": ["semidetached","semi-detached"]
+  },
+  {
+    "baseWord": "monthly",
+    "question": "What adjective is formed by adding a prefix to the word 'monthly' to mean happening every half-month?",
+    "correct": ["semimonthly","semi-monthly"]
+  },
+  {
+    "baseWord": "annual",
+    "question": "What adjective is formed by adding a prefix to the word 'annual' to mean happening every half-year?",
+    "correct": ["semiannual","semi-annual"]
+  },
+  {
+    "baseWord": "professional",
+    "question": "What adjective is formed by adding a prefix to the word 'professional' to mean partially professional?",
+    "correct": ["semiprofessional","semi-professional"]
+  },
+  {
+    "baseWord": "transparent",
+    "question": "What adjective is formed by adding a prefix to the word 'transparent' to mean partially transparent?",
+    "correct": ["semitransparent","semi-transparent"]
+  },
+  {
+    "baseWord": "precious",
+    "question": "What adjective is formed by adding a prefix to the word 'precious' to mean partly precious?",
+    "correct": ["semiprecious","semi-precious"]
+  },
+  {
+    "baseWord": "circle",
+    "question": "What noun is formed by adding a prefix to the word 'circle' to mean a half-circle?",
+    "correct": ["semicircular"]
+  },
+  {
+    "baseWord": "sophisticated",
+    "question": "What adjective is formed by adding a prefix to the word 'sophisticated' to mean somewhat sophisticated?",
+    "correct": ["semisophisticated"]
+  },
+  {
+    "baseWord": "dry",
+    "question": "What adjective is formed by adding a prefix to the word 'dry' to mean partially dry?",
+    "correct": ["semidry"]
+  },
+  {
+    "baseWord": "final",
+    "question": "What noun is formed by adding a prefix to the word 'final' to mean one part of the final event?",
+    "correct": ["semifinalist","semi-finalist"]
+  },
+  {
+    "baseWord": "conscious",
+    "question": "What adjective is formed by adding a prefix to the word 'conscious' to mean partly conscious?",
+    "correct": ["semiconscious"]
+  },
+  {
+    "baseWord": "quantitative",
+    "question": "What adjective is formed by adding a prefix to the word 'quantitative' to mean partially quantitative?",
+    "correct": ["semiquantitative"]
+  },
+  {
+    "baseWord": "marine",
+    "question": "What adjective is formed by adding a prefix to the word 'marine' to mean related to the sea or ocean?",
+    "correct": ["submarine"]
+  },
+  {
+    "baseWord": "standard",
+    "question": "What adjective is formed by adding a prefix to the word 'standard' to mean below the normal or expected level?",
+    "correct": ["substandard"]
+  },
+  {
+    "baseWord": "ordinate",
+    "question": "What noun is formed by adding a prefix to the word 'ordinate' to mean the horizontal coordinate in a plane?",
+    "correct": ["subordinate"]
+  },
+  {
+    "baseWord": "conscious",
+    "question": "What adjective is formed by adding a prefix to the word 'conscious' to mean partially conscious?",
+    "correct": ["subconscious"]
+  },
+  {
+    "baseWord": "script",
+    "question": "What noun is formed by adding a prefix to the word 'script' to mean a written work, especially one that is not the main work?",
+    "correct": ["subscript"]
+  },
+  {
+    "baseWord": "topic",
+    "question": "What noun is formed by adding a prefix to the word 'topic' to mean something that is a secondary or less important subject?",
+    "correct": ["subtopic"]
+  },
+  {
+    "baseWord": "divide",
+    "question": "What verb is formed by adding a prefix to the word 'divide' to mean to split into smaller parts or groups?",
+    "correct": ["subdivide"]
+  },
+  {
+    "baseWord": "threshold",
+    "question": "What noun is formed by adding a prefix to the word 'threshold' to mean a level below which something is insufficient?",
+    "correct": ["subthreshold"]
+  },
+  {
+    "baseWord": "way",
+    "question": "What noun is formed by adding a prefix to the word 'way' to mean a path or route under the ground?",
+    "correct": ["subway"]
+  },
+  {
+    "baseWord": "urban",
+    "question": "What adjective is formed by adding a prefix to the word 'urban' to mean related to areas outside the city?",
+    "correct": ["suburban"]
+  },
+  {
+    "baseWord": "natural",
+    "question": "What adjective is formed by adding a prefix to the word 'natural' to mean above or beyond the ordinary or normal?",
+    "correct": ["supernatural"]
+  },
+  {
+    "baseWord": "man",
+    "question": "What noun is formed by adding a prefix to the word 'man' to mean a person with superior qualities or skills?",
+    "correct": ["superman"]
+  },
+  {
+    "baseWord": "market",
+    "question": "What noun is formed by adding a prefix to the word 'market' to mean a market that is larger or more prominent?",
+    "correct": ["supermarket"]
+  },
+  {
+    "baseWord": "power",
+    "question": "What noun is formed by adding a prefix to the word 'power' to mean an excessive or greater level of power?",
+    "correct": ["superpower"]
+  },
+  {
+    "baseWord": "human",
+    "question": "What adjective is formed by adding a prefix to the word 'human' to mean greater than human abilities?",
+    "correct": ["superhuman"]
+  },
+  {
+    "baseWord": "star",
+    "question": "What noun is formed by adding a prefix to the word 'star' to mean an exceptionally famous or talented star?",
+    "correct": ["superstar"]
+  },
+  {
+    "baseWord": "vision",
+    "question": "What noun is formed by adding a prefix to the word 'vision' to mean the ability to see beyond the normal range?",
+    "correct": ["supervision"]
+  },
+  {
+    "baseWord": "structure",
+    "question": "What noun is formed by adding a prefix to the word 'structure' to mean a structure of exceptional size or importance?",
+    "correct": ["superstructure"]
+  },
+  {
+    "baseWord": "normal",
+    "question": "What adjective is formed by adding a prefix to the word 'normal' to mean something that is abnormal or outside the usual range?",
+    "correct": ["paranormal"]
+  },
+  {
+    "baseWord": "military",
+    "question": "What noun is formed by adding a prefix to the word 'military' to mean a person who serves in a military support role, not in active combat?",
+    "correct": ["paramilitary"]
+  },
+  {
+    "baseWord": "graph",
+    "question": "What noun is formed by adding a prefix to the word 'graph' to mean a diagram used for representing data?",
+    "correct": ["paragraph"]
+  },
+  {
+    "baseWord": "medical",
+    "question": "What noun is formed by adding a prefix to the word 'medical' to mean someone who assists in medical tasks but is not a fully qualified doctor?",
+    "correct": ["paramedic"]
+  },
+  {
+    "baseWord": "chute",
+    "question": "What noun is formed by adding a prefix to the word 'chute' to mean a device for jumping from an aircraft?",
+    "correct": ["parachute"]
+  },
+  {
+    "baseWord": "legal",
+    "question": "What noun is formed by adding a prefix to the word 'legal' to refer to someone who assists with legal matters, without being a full-fledged lawyer?",
+    "correct": ["paralegal"]
+  },
+  {
+    "baseWord": "science",
+    "question": "What noun is formed by adding a prefix to the word 'science' to mean something that pretends to be scientific but lacks the basis of real science?",
+    "correct": ["pseudoscience"]
+  },
+  {
+    "baseWord": "intellectual",
+    "question": "What adjective is formed by adding a prefix to the word 'intellectual' to mean pretending to be knowledgeable or educated?",
+    "correct": ["pseudo-intellectual"]
+  },
+  {
+    "baseWord": "event",
+    "question": "What noun is formed by adding a prefix to the word 'event' to mean an event that is false or fabricated?",
+    "correct": ["pseudo-event"]
+  },
+  {
+    "baseWord": "friend",
+    "question": "What noun is formed by adding a prefix to the word 'friend' to refer to a person who pretends to be a friend but is not genuinely one?",
+    "correct": ["pseudo-friend"]
+  },
+  {
+    "baseWord": "vision",
+    "question": "What noun is formed by adding a prefix to the word 'vision' to mean the ability to see things from a distance?",
+    "correct": ["television"]
+  },
+  {
+    "baseWord": "phone",
+    "question": "What noun is formed by adding a prefix to the word 'phone' to mean a system that allows communication over long distances?",
+    "correct": ["telephone"]
+  },
+  {
+    "baseWord": "graph",
+    "question": "What noun is formed by adding a prefix to the word 'graph' to mean a device used for recording distant data?",
+    "correct": ["telegraph"]
+  },
+  {
+    "baseWord": "conference",
+    "question": "What noun is formed by adding a prefix to the word 'conference' to mean a meeting held over a distance, often through video or audio?",
+    "correct": ["teleconference"]
+  },
+  {
+    "baseWord": "cast",
+    "question": "What verb is formed by adding a prefix to the word 'cast' to mean transmitting something, like a broadcast, over a distance?",
+    "correct": ["telecast"]
+  },
+  {
+    "baseWord": "port",
+    "question": "What noun is formed by adding a prefix to the word 'port' to mean a place where goods and passengers are transferred from one vehicle to another?",
+    "correct": ["transport"]
+  },
+  {
+    "baseWord": "form",
+    "question": "What verb is formed by adding a prefix to the word 'form' to mean to change into a different shape or state?",
+    "correct": ["transform"]
+  },
+  {
+    "baseWord": "mission",
+    "question": "What noun is formed by adding a prefix to the word 'mission' to mean a process of sending information or data across distances?",
+    "correct": ["transmission"]
+  },
+  {
+    "baseWord": "late",
+    "question": "What verb is formed by adding a prefix to the word 'late' to mean to move across or beyond a particular area?",
+    "correct": ["translate"]
+  },
+  {
+    "baseWord": "parent",
+    "question": "What noun is formed by adding a prefix to the word 'parent' to mean a child who moves from one place to another, typically from one country to another?",
+    "correct": ["transplant"]
+  },
+  {
+    "baseWord": "violet",
+    "question": "What adjective is formed by adding a prefix to the word 'violet' to mean beyond the visible spectrum of light?",
+    "correct": ["ultraviolet"]
+  },
+  {
+    "baseWord": "sound",
+    "question": "What adjective is formed by adding a prefix to the word 'sound' to mean above the normal hearing range?",
+    "correct": ["ultrasound"]
+  },
+  {
+    "baseWord": "modern",
+    "question": "What adjective is formed by adding a prefix to the word 'modern' to mean extremely modern or advanced?",
+    "correct": ["ultramodern","ultra-modern"]
+  },
+  {
+    "baseWord": "efficient",
+    "question": "What adjective is formed by adding a prefix to the word 'efficient' to mean excessively or extremely efficient?",
+    "correct": ["ultraefficient","ultra-efficient"]
+  },
+  {
+    "baseWord": "fast",
+    "question": "What adjective is formed by adding a prefix to the word 'fast' to mean extremely fast?",
+    "correct": ["ultrafast","ultra-fast"]
+  },
+  {
+    "baseWord": "estimate",
+    "question": "What verb is formed by adding a prefix to the word 'estimate' to mean to make an estimate that is too low?",
+    "correct": ["underestimate"]
+  },
+  {
+    "baseWord": "perform",
+    "question": "What verb is formed by adding a prefix to the word 'perform' to mean to perform less than expected?",
+    "correct": ["underperform"]
+  },
+  {
+    "baseWord": "develop",
+    "question": "What verb is formed by adding a prefix to the word 'develop' to mean to grow or evolve less than expected?",
+    "correct": ["underdevelop"]
+  },
+  {
+    "baseWord": "value",
+    "question": "What verb is formed by adding a prefix to the word 'value' to mean to assign a lower value to something?",
+    "correct": ["undervalue"]
+  }
+];
+
+let currentWordIndex = 0;
+let score = 0;
+let correctAnswers = 0;
+
+async function showCelebration() {
+  const modal = document.getElementById('celebrationModal');
+  const pokemonId = Math.floor(Math.random() * 898) + 1;
+  const pokemonContainer = document.getElementById('pokemonImage');
+  
+  try {
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
+    const data = await response.json();
+    const pokemonImage = document.createElement('img');
+    pokemonImage.src = data.sprites.other['official-artwork'].front_default;
+    pokemonImage.alt = `Pokemon ${data.name}`;
+    pokemonImage.width = 200;
+    pokemonImage.height = 200;
+    
+    pokemonContainer.innerHTML = '';
+    pokemonContainer.appendChild(pokemonImage);
+    modal.style.display = 'flex';
+  } catch (error) {
+    console.error('Error fetching Pokemon:', error);
+  }
+}
+
+function closeCelebration() {
+  const modal = document.getElementById('celebrationModal');
+  modal.style.display = 'none';
+}
+
+function displayWord() {
+  const wordDisplay = document.getElementById('word');
+  const questionDisplay = document.getElementById('question');
+  const answerInput = document.getElementById('answer');
+  
+  // Generate a random index instead of using currentWordIndex
+  currentWordIndex = Math.floor(Math.random() * wordFamilies.length);
+  const currentWord = wordFamilies[currentWordIndex];
+  
+  wordDisplay.textContent = currentWord.baseWord;
+  questionDisplay.textContent = currentWord.question;
+  answerInput.value = '';
+}
+
+function skipWord() {
+  const feedback = document.getElementById('feedback');
+  const currentWord = wordFamilies[currentWordIndex];
+  
+  feedback.textContent = `Skipped. The correct answer was '${currentWord.correct[0]}'`;
+  feedback.className = "feedback incorrect";
+  
+  setTimeout(() => {
+    // Generate a new random index instead of incrementing
+    currentWordIndex = Math.floor(Math.random() * wordFamilies.length);
+    feedback.textContent = "";
+    displayWord();
+  }, 2000);
+}
+
+function checkAnswer() {
+  const currentWord = wordFamilies[currentWordIndex];
+  const feedback = document.getElementById('feedback');
+  const scoreDisplay = document.getElementById('score');
+  const answerInput = document.getElementById('answer');
+  
+  const userAnswer = answerInput.value.trim().toLowerCase();
+  
+  if (currentWord.correct.includes(userAnswer)) {
+    score += 10;
+    correctAnswers++;
+    feedback.textContent = "Correct! Well done!";
+    feedback.className = "feedback correct";
+    
+    if (correctAnswers === 10) {
+      showCelebration();
+      correctAnswers = 0;
+    }
+  } else {
+    feedback.textContent = `Incorrect. The correct answer is '${currentWord.correct.join("' or '")}'`;
+    feedback.className = "feedback incorrect";
+  }
+  
+  scoreDisplay.textContent = score;
+  
+  setTimeout(() => {
+    // Generate a new random index instead of incrementing
+    currentWordIndex = Math.floor(Math.random() * wordFamilies.length);
+    feedback.textContent = "";
+    displayWord();
+  }, 2000);
+}
+
+function startNewChallenge() {
+  score = 0;
+  correctAnswers = 0;
+  const scoreDisplay = document.getElementById('score');
+  const feedback = document.getElementById('feedback');
+  
+  scoreDisplay.textContent = score;
+  feedback.textContent = "Starting a new challenge!";
+  feedback.className = "feedback";
+  
+  setTimeout(() => {
+    feedback.textContent = "";
+    displayWord();
+  }, 1500);
+}
+
+document.getElementById('answer').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    checkAnswer();
+  }
+});
+
+displayWord();
+</script>
+   <div class="footer">Author: Aaron Shi. Released in 2025.</div>
+</body></html>
